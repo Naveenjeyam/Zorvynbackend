@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-dev-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = [
-    "https://zorvynbackend-w3qy.onrender.com",
+    "zorvynbackend-w3qy.onrender.com",
     "localhost",
     "127.0.0.1"
 ]
@@ -54,7 +54,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "finance_backend.urls"
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 TEMPLATES = [
     {
