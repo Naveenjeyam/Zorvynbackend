@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinLedger — Finance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --bg4: #22222f;
+  --border: #2a2a3a;
+  --border2: #3a3a50;
+  --text: #f0f0f8;
+  --text2: #9090b0;
+  --text3: #5a5a7a;
+  --accent: #6c63ff;
+  --accent2: #9d97ff;
+  --green: #00d4a0;
+  --green2: #00ff9d;
+  --red: #ff4d6d;
+  --red2: #ff8096;
+  --amber: #ffb347;
+  --blue: #4db8ff;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --r: 12px;
+  --r2: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+/* ── GRID NOISE BACKGROUND ── */
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(108,99,255,.12) 0,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,212,160,.08) 0,transparent 60%);pointer-events:none;z-index:0;}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--bg);}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:48px;width:440px;max-width:95vw;position:relative;overflow:hidden;}
+.auth-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(108,99,255,.2),transparent 70%);pointer-events:none;}
+.auth-logo{font-family:var(--font-head);font-size:28px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px;}
+.auth-logo span{color:var(--accent);}
+.auth-sub{color:var(--text2);margin-bottom:36px;font-size:13px;}
+.auth-tabs{display:flex;gap:4px;background:var(--bg3);border-radius:var(--r2);padding:4px;margin-bottom:28px;}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:6px;cursor:pointer;font-family:var(--font-head);font-weight:600;font-size:13px;color:var(--text2);transition:.2s;}
+.auth-tab.active{background:var(--accent);color:#fff;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-family:var(--font-head);font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;transition:.2s;}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.15);}
+.field select option{background:var(--bg3);}
+.btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r2);font-family:var(--font-head);font-weight:700;font-size:14px;cursor:pointer;transition:.2s;letter-spacing:.3px;}
+.btn:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn.outline{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn.outline:hover{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.08);}
+.btn.danger{background:var(--red);}
+.btn.success{background:var(--green);color:#000;}
+.btn.sm{width:auto;padding:7px 16px;font-size:13px;}
+.btn.xs{width:auto;padding:5px 12px;font-size:12px;}
+.auth-hint{margin-top:20px;font-size:12px;color:var(--text3);text-align:center;line-height:1.6;}
+.auth-hint b{color:var(--text2);}
+.error-msg{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:var(--red2);border-radius:var(--r2);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;}
+.error-msg.show{display:block;}
+
+/* ── APP SHELL ── */
+#app{display:none;min-height:100vh;}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.sidebar-logo .logo-text{font-family:var(--font-head);font-size:20px;font-weight:800;letter-spacing:-0.5px;}
+.sidebar-logo .logo-text span{color:var(--accent);}
+.sidebar-logo .role-badge{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 10px;border-radius:20px;font-size:11px;font-family:var(--font-mono);font-weight:500;background:rgba(108,99,255,.15);color:var(--accent2);border:1px solid rgba(108,99,255,.25);}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto;}
+.nav-section{font-size:10px;font-family:var(--font-head);font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:12px 8px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r2);cursor:pointer;color:var(--text2);font-weight:500;transition:.15s;margin-bottom:2px;font-size:13px;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(108,99,255,.15);color:var(--accent2);border:1px solid rgba(108,99,255,.2);}
+.nav-item .icon{width:18px;height:18px;opacity:.7;flex-shrink:0;}
+.nav-item.active .icon{opacity:1;}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.user-info{display:flex;align-items:center;gap:10px;}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--green));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
+.user-name{font-weight:600;font-size:13px;}
+.user-email{font-size:11px;color:var(--text2);font-family:var(--font-mono);}
+.logout-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;border-radius:4px;transition:.15s;margin-left:auto;}
+.logout-btn:hover{color:var(--red);background:rgba(255,77,109,.1);}
+
+/* ── MAIN CONTENT ── */
+.main{margin-left:240px;min-height:100vh;position:relative;z-index:1;}
+.page{display:none;padding:32px;}
+.page.active{display:block;}
+.page-header{margin-bottom:28px;}
+.page-title{font-family:var(--font-head);font-size:26px;font-weight:800;letter-spacing:-0.5px;}
+.page-sub{color:var(--text2);font-size:13px;margin-top:4px;}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;}
+.card-sm{padding:16px;}
+.card-title{font-family:var(--font-head);font-weight:700;font-size:13px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px;}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden;transition:.2s;}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.income::after{background:linear-gradient(90deg,var(--green),transparent);}
+.stat-card.expense::after{background:linear-gradient(90deg,var(--red),transparent);}
+.stat-card.balance::after{background:linear-gradient(90deg,var(--accent),transparent);}
+.stat-card.records::after{background:linear-gradient(90deg,var(--amber),transparent);}
+.stat-label{font-size:11px;font-family:var(--font-head);font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.stat-value{font-family:var(--font-mono);font-size:22px;font-weight:500;letter-spacing:-0.5px;}
+.stat-value.green{color:var(--green);}
+.stat-value.red{color:var(--red);}
+.stat-value.accent{color:var(--accent2);}
+.stat-value.amber{color:var(--amber);}
+.stat-icon{position:absolute;right:16px;top:16px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+
+/* ── GRID LAYOUTS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid-6-4{display:grid;grid-template-columns:6fr 4fr;gap:16px;}
+
+/* ── CHARTS ── */
+.chart-wrap{position:relative;height:240px;}
+
+/* ── TABLES ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-family:var(--font-head);font-weight:700;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;}
+td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+td.td-primary{color:var(--text);font-weight:500;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--font-mono);font-weight:500;}
+.badge.income{background:rgba(0,212,160,.12);color:var(--green);border:1px solid rgba(0,212,160,.25);}
+.badge.expense{background:rgba(255,77,109,.12);color:var(--red2);border:1px solid rgba(255,77,109,.25);}
+.badge.admin{background:rgba(108,99,255,.15);color:var(--accent2);border:1px solid rgba(108,99,255,.25);}
+.badge.analyst{background:rgba(77,184,255,.15);color:var(--blue);border:1px solid rgba(77,184,255,.25);}
+.badge.viewer{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border);}
+.badge.active{background:rgba(0,212,160,.12);color:var(--green);}
+.badge.inactive{background:rgba(255,77,109,.12);color:var(--red2);}
+
+/* ── FILTERS BAR ── */
+.filters{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filters input,.filters select{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:8px 12px;color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;transition:.2s;}
+.filters input:focus,.filters select:focus{border-color:var(--accent);}
+.filters select option{background:var(--bg3);}
+.filter-label{font-size:12px;color:var(--text3);font-family:var(--font-head);font-weight:600;}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;gap:8px;margin-top:16px;justify-content:flex-end;}
+.page-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-mono);transition:.15s;}
+.page-btn:hover{border-color:var(--accent);color:var(--accent);}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.page-btn:disabled{opacity:.4;cursor:not-allowed;}
+.page-info{font-size:12px;color:var(--text3);font-family:var(--font-mono);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:24px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:var(--font-head);font-weight:700;font-size:16px;}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;padding:4px;border-radius:4px;transition:.15s;}
+.modal-close:hover{color:var(--text);background:var(--bg3);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text3);}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px;color:var(--text3);}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+.empty-text{font-size:14px;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 18px;font-size:13px;color:var(--text);min-width:260px;animation:slideIn .3s ease;box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.toast-item.success{border-left:3px solid var(--green);}
+.toast-item.error{border-left:3px solid var(--red);}
+.toast-item.info{border-left:3px solid var(--accent);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* ── RECENT ACTIVITY ── */
+.activity-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);}
+.activity-item:last-child{border-bottom:none;}
+.activity-dot{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.activity-dot.income{background:rgba(0,212,160,.12);}
+.activity-dot.expense{background:rgba(255,77,109,.12);}
+.activity-info{flex:1;min-width:0;}
+.activity-cat{font-weight:500;font-size:13px;color:var(--text);}
+.activity-date{font-size:11px;color:var(--text3);font-family:var(--font-mono);}
+.activity-amount{font-family:var(--font-mono);font-weight:500;font-size:14px;}
+.activity-amount.income{color:var(--green);}
+.activity-amount.expense{color:var(--red2);}
+
+/* ── CATEGORY BARS ── */
+.cat-bar-item{margin-bottom:14px;}
+.cat-bar-header{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px;}
+.cat-bar-name{color:var(--text2);}
+.cat-bar-amt{font-family:var(--font-mono);color:var(--text);}
+.cat-bar-track{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.cat-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .6s ease;}
+
+/* ── ADMIN ACTIONS ── */
+.action-btns{display:flex;gap:6px;}
+
+/* ── PROFILE ── */
+.profile-grid{display:grid;grid-template-columns:280px 1fr;gap:20px;}
+.profile-avatar-big{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--green));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:28px;color:#fff;margin-bottom:16px;}
+.profile-name{font-family:var(--font-head);font-size:20px;font-weight:700;}
+.profile-email{color:var(--text2);font-size:13px;font-family:var(--font-mono);margin-top:4px;}
+.info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-key{color:var(--text3);font-family:var(--font-head);font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+.info-val{color:var(--text);font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ AUTH SCREEN ═══════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Fin<span>Ledger</span></div>
+    <div class="auth-sub">Finance Dashboard System</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+    </div>
+    <div id="auth-error" class="error-msg"></div>
+
+    <!-- Login Form -->
+    <div id="login-form">
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="admin@finance.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn" onclick="handleLogin()">Sign In</button>
+      <div class="auth-hint">
+        Test accounts:<br>
+        <b>admin@finance.com</b> / Admin@1234<br>
+        <b>analyst@finance.com</b> / Analyst@1234<br>
+        <b>viewer@finance.com</b> / Viewer@1234
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="register-form" style="display:none">
+      <div class="field"><label>Full Name</label><input type="text" id="reg-name" placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 6 characters"></div>
+      <div class="field"><label>Confirm Password</label><input type="password" id="reg-pass2" placeholder="Repeat password"></div>
+      <button class="btn" onclick="handleRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ APP SHELL ═══════════════════════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">Fin<span>Ledger</span></div>
+      <div class="role-badge" id="sidebar-role">viewer</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('analytics')" id="nav-analytics">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Analytics
+      </div>
+      <div class="nav-section">Finance</div>
+      <div class="nav-item" onclick="navigate('records')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Records
+      </div>
+      <div class="nav-item" onclick="navigate('categories')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Categories
+      </div>
+      <div class="nav-section" id="nav-admin-section" style="display:none">Admin</div>
+      <div class="nav-item" onclick="navigate('users')" id="nav-users" style="display:none">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+      </div>
+      <div class="nav-section">Account</div>
+      <div class="nav-item" onclick="navigate('profile')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="sidebar-avatar">U</div>
+        <div>
+          <div class="user-name" id="sidebar-name">User</div>
+          <div class="user-email" id="sidebar-email">user@example.com</div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()" title="Logout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ── DASHBOARD PAGE ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Financial overview at a glance</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card income">
+          <div class="stat-label">Total Income</div>
+          <div class="stat-value green" id="stat-income">—</div>
+          <div class="stat-icon" style="background:rgba(0,212,160,.1)">💹</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value red" id="stat-expense">—</div>
+          <div class="stat-icon" style="background:rgba(255,77,109,.1)">📉</div>
+        </div>
+        <div class="stat-card balance">
+          <div class="stat-label">Net Balance</div>
+          <div class="stat-value accent" id="stat-balance">—</div>
+          <div class="stat-icon" style="background:rgba(108,99,255,.1)">⚖️</div>
+        </div>
+        <div class="stat-card records">
+          <div class="stat-label">Total Records</div>
+          <div class="stat-value amber" id="stat-records">—</div>
+          <div class="stat-icon" style="background:rgba(255,179,71,.1)">🗂️</div>
+        </div>
+      </div>
+      <div class="grid-6-4" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-title">Monthly Trend</div>
+          <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          <div id="recent-activity-list"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card" id="cat-breakdown-card">
+          <div class="card-title">Expense by Category</div>
+          <div id="cat-breakdown-list"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Income vs Expense</div>
+          <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS PAGE ── -->
+    <div class="page" id="page-analytics">
+      <div class="page-header">
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Trends, breakdowns, and insights</div>
+      </div>
+      <div class="filters">
+        <span class="filter-label">Year:</span>
+        <select id="analytics-year" onchange="loadAnalytics()">
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+        <span class="filter-label">Type:</span>
+        <select id="analytics-type" onchange="loadCategoryBreakdown()">
+          <option value="">All</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-title">Monthly Income</div>
+          <div class="chart-wrap"><canvas id="chart-income-monthly"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Monthly Expenses</div>
+          <div class="chart-wrap"><canvas id="chart-expense-monthly"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Weekly Trend (Last 8 Weeks)</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="chart-weekly"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Category Breakdown</div>
+        <div id="analytics-cat-list"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── RECORDS PAGE ── -->
+    <div class="page" id="page-records">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Financial Records</div>
+          <div class="page-sub">All transactions and entries</div>
+        </div>
+        <button class="btn sm" id="btn-add-record" onclick="openRecordModal()" style="display:none">+ Add Record</button>
+      </div>
+      <div class="filters">
+        <select id="filter-type" onchange="loadRecords(1)">
+          <option value="">All Types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <select id="filter-category" onchange="loadRecords(1)">
+          <option value="">All Categories</option>
+        </select>
+        <input type="date" id="filter-date-from" onchange="loadRecords(1)" placeholder="From">
+        <input type="date" id="filter-date-to" onchange="loadRecords(1)" placeholder="To">
+        <input type="text" id="filter-search" onkeyup="debounceSearch()" placeholder="Search notes...">
+        <button class="btn xs outline" onclick="clearFilters()">Clear</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Notes</th><th>Created By</th><th id="th-actions" style="display:none">Actions</th>
+            </tr></thead>
+            <tbody id="records-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="records-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ── CATEGORIES PAGE ── -->
+    <div class="page" id="page-categories">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Categories</div>
+          <div class="page-sub">Manage record categories</div>
+        </div>
+        <button class="btn sm" id="btn-add-cat" onclick="openCatModal()" style="display:none">+ Add Category</button>
+      </div>
+      <div class="grid-3" id="categories-grid">
+        <div class="loading" style="grid-column:1/-1"><div class="spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <!-- ── USERS PAGE (Admin only) ── -->
+    <div class="page" id="page-users">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">User Management</div>
+          <div class="page-sub">Manage all system users</div>
+        </div>
+        <button class="btn sm" onclick="openUserModal()">+ Add User</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE PAGE ── -->
+    <div class="page" id="page-profile">
+      <div class="page-header">
+        <div class="page-title">My Profile</div>
+        <div class="page-sub">Account settings and preferences</div>
+      </div>
+      <div class="profile-grid">
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="profile-avatar-big" id="profile-avatar-big">U</div>
+            <div class="profile-name" id="profile-name">—</div>
+            <div class="profile-email" id="profile-email">—</div>
+            <div style="margin-top:16px;">
+              <div class="info-row"><span class="info-key">Role</span><span class="info-val" id="profile-role">—</span></div>
+              <div class="info-row"><span class="info-key">Status</span><span class="info-val" id="profile-status">—</span></div>
+              <div class="info-row"><span class="info-key">Joined</span><span class="info-val" id="profile-joined">—</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">Update Name</div>
+            <div class="field"><label>Full Name</label><input type="text" id="upd-name" placeholder="Your full name"></div>
+            <button class="btn sm" onclick="updateProfile()">Save Changes</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Change Password</div>
+            <div class="field"><label>Current Password</label><input type="password" id="pwd-old" placeholder="Current password"></div>
+            <div class="field"><label>New Password</label><input type="password" id="pwd-new" placeholder="New password (min 6 chars)"></div>
+            <div class="field"><label>Confirm New Password</label><input type="password" id="pwd-new2" placeholder="Repeat new password"></div>
+            <button class="btn sm" onclick="changePassword()">Update Password</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end #app -->
+
+<!-- ═══════ MODALS ═══════ -->
+
+<!-- Record Modal -->
+<div class="modal-overlay" id="record-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="record-modal-title">Add Record</div>
+      <button class="modal-close" onclick="closeModal('record-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="record-modal-error" class="error-msg"></div>
+      <input type="hidden" id="record-id">
+      <div class="field"><label>Amount (₹)</label><input type="number" id="r-amount" placeholder="0.00" step="0.01" min="0.01"></div>
+      <div class="field"><label>Type</label>
+        <select id="r-type"><option value="income">Income</option><option value="expense">Expense</option></select>
+      </div>
+      <div class="field"><label>Category</label>
+        <select id="r-category"><option value="">-- Select --</option></select>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="r-date"></div>
+      <div class="field"><label>Notes</label><input type="text" id="r-notes" placeholder="Optional description"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline sm" onclick="closeModal('record-modal')">Cancel</button>
+      <button class="btn sm" onclick="saveRecord()">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="cat-modal-title">Add Category</div>
+      <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-id">
+      <div class="field"><label>Name</label><input type="text" id="cat-name" placeholder="e.g. Salary"></div>
+      <div class="field"><label>Description</label><input type="text" id="cat-desc" placeholder="Optional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline sm" onclick="closeModal('cat-modal')">Cancel</button>
+      <button class="btn sm" onclick="saveCat()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="user-modal-title">Add User</div>
+      <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="user-modal-error" class="error-msg"></div>
+      <input type="hidden" id="user-id">
+      <div id="user-create-fields">
+        <div class="field"><label>Full Name</label><input type="text" id="u-name" placeholder="Full name"></div>
+        <div class="field"><label>Email</label><input type="email" id="u-email" placeholder="Email address"></div>
+        <div class="field"><label>Password</label><input type="password" id="u-pass" placeholder="Min 6 characters"></div>
+        <div class="field"><label>Confirm Password</label><input type="password" id="u-pass2" placeholder="Repeat password"></div>
+      </div>
+      <div class="field"><label>Role</label>
+        <select id="u-role"><option value="viewer">Viewer</option><option value="analyst">Analyst</option><option value="admin">Admin</option></select>
+      </div>
+      <div class="field" id="u-status-field" style="display:none"><label>Status</label>
+        <select id="u-status"><option value="true">Active</option><option value="false">Inactive</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn outline sm" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn sm" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════ JAVASCRIPT ═══════════════════════════════════ -->
+<script>
+const API = 'http://localhost:8000/api';
+let accessToken = localStorage.getItem('access_token') || '';
+let refreshToken = localStorage.getItem('refresh_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+let currentPage = 'dashboard';
+let searchTimer = null;
+let charts = {};
+let allCategories = [];
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const fmt = n => '₹' + Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = d => new Date(d).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+const isAdmin = () => currentUser?.role === 'admin';
+const isAnalyst = () => currentUser?.role === 'analyst' || isAdmin();
+
+async function apiFetch(path, opts = {}) {
+  const headers = {'Content-Type': 'application/json', ...(opts.headers || {})};
+  if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
+  let res = await fetch(API + path, {...opts, headers});
+  if (res.status === 401 && refreshToken) {
+    const r2 = await fetch(API + '/auth/token/refresh/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refresh: refreshToken})});
+    if (r2.ok) {
+      const d = await r2.json();
+      accessToken = d.access;
+      localStorage.setItem('access_token', accessToken);
+      headers['Authorization'] = 'Bearer ' + accessToken;
+      res = await fetch(API + path, {...opts, headers});
+    } else { handleLogout(); return null; }
+  }
+  return res;
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function hideErr(id) { document.getElementById(id)?.classList.remove('show'); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadRecords(1), 500);
+}
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'?i===0:i===1)));
+  document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+  hideErr('auth-error');
+}
+
+async function handleLogin() {
+  hideErr('auth-error');
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+  if (!email || !password) return showErr('auth-error', 'Please fill all fields.');
+  const res = await fetch(API + '/auth/login/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password})});
+  const data = await res.json();
+  if (!res.ok) return showErr('auth-error', data.detail || 'Invalid credentials.');
+  accessToken = data.access; refreshToken = data.refresh;
+  localStorage.setItem('access_token', accessToken);
+  localStorage.setItem('refresh_token', refreshToken);
+  await fetchAndStoreUser();
+  bootApp();
+}
+
+async function handleRegister() {
+  hideErr('auth-error');
+  const full_name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  const confirm_password = document.getElementById('reg-pass2').value;
+  if (!full_name || !email || !password) return showErr('auth-error', 'Please fill all fields.');
+  if (password !== confirm_password) return showErr('auth-error', 'Passwords do not match.');
+  const res = await fetch(API + '/auth/register/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({full_name, email, password, confirm_password})});
+  const data = await res.json();
+  if (!res.ok) return showErr('auth-error', JSON.stringify(data));
+  accessToken = data.tokens.access; refreshToken = data.tokens.refresh;
+  localStorage.setItem('access_token', accessToken);
+  localStorage.setItem('refresh_token', refreshToken);
+  currentUser = data.user;
+  localStorage.setItem('current_user', JSON.stringify(currentUser));
+  bootApp();
+}
+
+async function fetchAndStoreUser() {
+  const res = await apiFetch('/auth/profile/');
+  if (res?.ok) { currentUser = await res.json(); localStorage.setItem('current_user', JSON.stringify(currentUser)); }
+}
+
+async function handleLogout() {
+  if (refreshToken) await apiFetch('/auth/logout/', {method:'POST', body: JSON.stringify({refresh: refreshToken})});
+  accessToken = ''; refreshToken = ''; currentUser = null;
+  localStorage.clear();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  toast('Logged out successfully.', 'info');
+}
+
+// ── BOOT ───────────────────────────────────────────────────────────────────
+function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  // Update sidebar
+  document.getElementById('sidebar-name').textContent = currentUser?.full_name || 'User';
+  document.getElementById('sidebar-email').textContent = currentUser?.email || '';
+  document.getElementById('sidebar-avatar').textContent = (currentUser?.full_name || 'U')[0].toUpperCase();
+  document.getElementById('sidebar-role').textContent = currentUser?.role || 'viewer';
+  // Role-based nav visibility
+  if (isAdmin()) {
+    document.getElementById('nav-admin-section').style.display = '';
+    document.getElementById('nav-users').style.display = '';
+  }
+  if (isAnalyst()) document.getElementById('nav-analytics').style.display = '';
+  navigate('dashboard');
+  loadCategories();
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.querySelectorAll(`.nav-item`).forEach(n => { if(n.getAttribute('onclick')?.includes("'"+page+"'")) n.classList.add('active'); });
+  const loaders = {dashboard: loadDashboard, analytics: loadAnalytics, records: () => loadRecords(1), categories: loadCategories, users: loadUsers, profile: loadProfile};
+  loaders[page]?.();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [sumRes, recentRes] = await Promise.all([
+    apiFetch('/dashboard/summary/'),
+    apiFetch('/dashboard/recent-activity/?limit=6')
+  ]);
+  if (sumRes?.ok) {
+    const d = await sumRes.json();
+    document.getElementById('stat-income').textContent = fmt(d.total_income);
+    document.getElementById('stat-expense').textContent = fmt(d.total_expenses);
+    document.getElementById('stat-balance').textContent = fmt(d.net_balance);
+    document.getElementById('stat-records').textContent = d.total_records;
+  }
+  if (recentRes?.ok) {
+    const d = await recentRes.json();
+    renderRecentActivity(d.recent_activity);
+  }
+  if (isAnalyst()) {
+    loadMonthlyChart();
+    loadDonutChart();
+    loadCategoryBars();
+  }
+}
+
+function renderRecentActivity(items) {
+  const el = document.getElementById('recent-activity-list');
+  if (!items?.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No recent activity</div></div>'; return; }
+  el.innerHTML = items.map(r => `
+    <div class="activity-item">
+      <div class="activity-dot ${r.type}">${r.type === 'income' ? '↑' : '↓'}</div>
+      <div class="activity-info">
+        <div class="activity-cat">${r.category}</div>
+        <div class="activity-date">${fmtDate(r.date)}${r.notes ? ' · ' + r.notes.substring(0,30) : ''}</div>
+      </div>
+      <div class="activity-amount ${r.type}">${r.type==='income'?'+':'-'}${fmt(r.amount)}</div>
+    </div>`).join('');
+}
+
+async function loadMonthlyChart() {
+  const res = await apiFetch('/dashboard/monthly-trend/');
+  if (!res?.ok) return;
+  const d = await res.json();
+  const labels = d.monthly_trend.map(m => m.month);
+  const income = d.monthly_trend.map(m => m.income);
+  const expense = d.monthly_trend.map(m => m.expense);
+  if (charts.monthly) charts.monthly.destroy();
+  charts.monthly = new Chart(document.getElementById('chart-monthly'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      {label:'Income', data:income, backgroundColor:'rgba(0,212,160,.6)', borderColor:'var(--green)', borderWidth:1, borderRadius:4},
+      {label:'Expense', data:expense, backgroundColor:'rgba(255,77,109,.4)', borderColor:'var(--red)', borderWidth:1, borderRadius:4}
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#9090b0',font:{family:'DM Mono'}}}}, scales:{x:{ticks:{color:'#5a5a7a'}, grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:'#5a5a7a',callback:v=>'₹'+v.toLocaleString('en-IN')}, grid:{color:'rgba(255,255,255,.04)'}}}}
+  });
+}
+
+async function loadDonutChart() {
+  const res = await apiFetch('/dashboard/summary/');
+  if (!res?.ok) return;
+  const d = await res.json();
+  if (charts.donut) charts.donut.destroy();
+  charts.donut = new Chart(document.getElementById('chart-donut'), {
+    type: 'doughnut',
+    data: { labels:['Income','Expense'], datasets:[{data:[d.total_income, d.total_expenses], backgroundColor:['rgba(0,212,160,.7)','rgba(255,77,109,.7)'], borderColor:['var(--green)','var(--red)'], borderWidth:2, hoverOffset:8}]},
+    options: { responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{legend:{labels:{color:'#9090b0',font:{family:'DM Mono'}}}}}
+  });
+}
+
+async function loadCategoryBars() {
+  const res = await apiFetch('/dashboard/category-breakdown/?type=expense');
+  if (!res?.ok) return;
+  const d = await res.json();
+  const items = d.breakdown.slice(0,6);
+  const max = Math.max(...items.map(i=>i.total), 1);
+  document.getElementById('cat-breakdown-list').innerHTML = items.map(i => `
+    <div class="cat-bar-item">
+      <div class="cat-bar-header"><span class="cat-bar-name">${i.category_name}</span><span class="cat-bar-amt">${fmt(i.total)}</span></div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(i.total/max*100).toFixed(1)}%"></div></div>
+    </div>`).join('');
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const year = document.getElementById('analytics-year').value;
+  const res = await apiFetch(`/dashboard/monthly-trend/?year=${year}`);
+  if (!res?.ok) return;
+  const d = await res.json();
+  const labels = d.monthly_trend.map(m => m.month);
+  const income = d.monthly_trend.map(m => m.income);
+  const expense = d.monthly_trend.map(m => m.expense);
+  const mkOpts = (color) => ({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5a5a7a'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#5a5a7a',callback:v=>'₹'+v.toLocaleString('en-IN')},grid:{color:'rgba(255,255,255,.04)'}}}});
+  if (charts.incomeM) charts.incomeM.destroy();
+  charts.incomeM = new Chart(document.getElementById('chart-income-monthly'), {type:'line', data:{labels, datasets:[{label:'Income', data:income, borderColor:color, backgroundColor:color.replace('1)','0.1)'), fill:true, tension:.4, pointRadius:3}]}, options: mkOpts('rgba(0,212,160,1)')});
+  if (charts.expenseM) charts.expenseM.destroy();
+  charts.expenseM = new Chart(document.getElementById('chart-expense-monthly'), {type:'line', data:{labels, datasets:[{label:'Expense', data:expense, borderColor:'rgba(255,77,109,1)', backgroundColor:'rgba(255,77,109,0.1)', fill:true, tension:.4, pointRadius:3}]}, options: mkOpts('rgba(255,77,109,1)')});
+  loadWeeklyChart();
+  loadCategoryBreakdown();
+}
+
+async function loadWeeklyChart() {
+  const res = await apiFetch('/dashboard/weekly-trend/');
+  if (!res?.ok) return;
+  const d = await res.json();
+  const labels = d.weekly_trend.map(w => w.week_starting);
+  if (charts.weekly) charts.weekly.destroy();
+  charts.weekly = new Chart(document.getElementById('chart-weekly'), {
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Income', data:d.weekly_trend.map(w=>w.income), backgroundColor:'rgba(0,212,160,.5)', borderRadius:4},
+      {label:'Expense', data:d.weekly_trend.map(w=>w.expense), backgroundColor:'rgba(255,77,109,.4)', borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9090b0'}}},scales:{x:{ticks:{color:'#5a5a7a'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#5a5a7a',callback:v=>'₹'+v.toLocaleString('en-IN')},grid:{color:'rgba(255,255,255,.04)'}}}}
+  });
+}
+
+async function loadCategoryBreakdown() {
+  const type = document.getElementById('analytics-type').value;
+  const year = document.getElementById('analytics-year').value;
+  const url = `/dashboard/category-breakdown/?year=${year}${type?'&type='+type:''}`;
+  const res = await apiFetch(url);
+  if (!res?.ok) return;
+  const d = await res.json();
+  const el = document.getElementById('analytics-cat-list');
+  if (!d.breakdown.length) { el.innerHTML = '<div class="empty"><div class="empty-text">No data</div></div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Category</th><th>Total</th><th>Records</th></tr></thead><tbody>${
+    d.breakdown.map(i=>`<tr><td class="td-primary">${i.category_name}</td><td class="td-primary" style="font-family:var(--font-mono)">${fmt(i.total)}</td><td>${i.record_count}</td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+
+// ── RECORDS ────────────────────────────────────────────────────────────────
+async function loadRecords(page = 1) {
+  const type = document.getElementById('filter-type').value;
+  const cat = document.getElementById('filter-category').value;
+  const from = document.getElementById('filter-date-from').value;
+  const to = document.getElementById('filter-date-to').value;
+  const search = document.getElementById('filter-search').value;
+  let url = `/finance/records/?page=${page}`;
+  if (type) url += `&type=${type}`;
+  if (cat) url += `&category=${cat}`;
+  if (from) url += `&date_from=${from}`;
+  if (to) url += `&date_to=${to}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  const res = await apiFetch(url);
+  if (!res?.ok) return;
+  const d = await res.json();
+  const tbody = document.getElementById('records-tbody');
+  if (isAdmin()) {
+    document.getElementById('btn-add-record').style.display = '';
+    document.getElementById('th-actions').style.display = '';
+  }
+  if (!d.results?.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No records found</div></div></td></tr>';
+    document.getElementById('records-pagination').innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = d.results.map(r => `
+    <tr>
+      <td class="td-primary" style="font-family:var(--font-mono)">${fmtDate(r.date)}</td>
+      <td><span class="badge ${r.type}">${r.type}</span></td>
+      <td>${r.category_name || '—'}</td>
+      <td class="td-primary" style="font-family:var(--font-mono);color:${r.type==='income'?'var(--green)':'var(--red2)'}">${r.type==='income'?'+':'-'}${fmt(r.amount)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '—'}</td>
+      <td>${r.created_by_name || '—'}</td>
+      ${isAdmin() ? `<td><div class="action-btns"><button class="btn xs outline" onclick="editRecord(${JSON.stringify(r).replace(/"/g,'&quot;')})">Edit</button><button class="btn xs danger" onclick="deleteRecord(${r.id})">Del</button></div></td>` : '<td></td>'}
+    </tr>`).join('');
+  renderPagination('records-pagination', d.count, page, () => loadRecords);
+}
+
+function renderPagination(id, total, current, getLoader) {
+  const pages = Math.ceil(total / 10);
+  if (pages <= 1) { document.getElementById(id).innerHTML = ''; return; }
+  let html = `<span class="page-info">${total} total</span>`;
+  html += `<button class="page-btn" ${current<=1?'disabled':''} onclick="(${getLoader()})(${current-1})">←</button>`;
+  for (let i = Math.max(1,current-1); i <= Math.min(pages,current+1); i++)
+    html += `<button class="page-btn ${i===current?'active':''}" onclick="(${getLoader()})(${i})">${i}</button>`;
+  html += `<button class="page-btn" ${current>=pages?'disabled':''} onclick="(${getLoader()})(${current+1})">→</button>`;
+  document.getElementById(id).innerHTML = html;
+}
+
+function clearFilters() {
+  ['filter-type','filter-category','filter-date-from','filter-date-to','filter-search'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  loadRecords(1);
+}
+
+function openRecordModal(record = null) {
+  document.getElementById('record-modal-title').textContent = record ? 'Edit Record' : 'Add Record';
+  document.getElementById('record-id').value = record?.id || '';
+  document.getElementById('r-amount').value = record?.amount || '';
+  document.getElementById('r-type').value = record?.type || 'income';
+  document.getElementById('r-category').value = record?.category || '';
+  document.getElementById('r-date').value = record?.date || new Date().toISOString().split('T')[0];
+  document.getElementById('r-notes').value = record?.notes || '';
+  hideErr('record-modal-error');
+  openModal('record-modal');
+}
+
+function editRecord(r) { openRecordModal(r); }
+
+async function saveRecord() {
+  const id = document.getElementById('record-id').value;
+  const body = {
+    amount: parseFloat(document.getElementById('r-amount').value),
+    type: document.getElementById('r-type').value,
+    category: document.getElementById('r-category').value || null,
+    date: document.getElementById('r-date').value,
+    notes: document.getElementById('r-notes').value
+  };
+  if (!body.amount || !body.date) return showErr('record-modal-error', 'Amount and date are required.');
+  const res = await apiFetch(id ? `/finance/records/${id}/` : '/finance/records/', {method: id ? 'PATCH' : 'POST', body: JSON.stringify(body)});
+  const data = await res?.json();
+  if (!res?.ok) return showErr('record-modal-error', JSON.stringify(data));
+  closeModal('record-modal');
+  toast(id ? 'Record updated!' : 'Record created!', 'success');
+  loadRecords(1);
+}
+
+async function deleteRecord(id) {
+  if (!confirm('Delete this record? (Soft delete — recoverable by admin)')) return;
+  const res = await apiFetch(`/finance/records/${id}/`, {method:'DELETE'});
+  if (res?.ok) { toast('Record deleted.', 'success'); loadRecords(1); }
+  else toast('Delete failed.', 'error');
+}
+
+// ── CATEGORIES ─────────────────────────────────────────────────────────────
+async function loadCategories() {
+  const res = await apiFetch('/finance/categories/');
+  if (!res?.ok) return;
+  const d = await res.json();
+  allCategories = d;
+  // populate record modal select
+  const sel = document.getElementById('r-category');
+  if (sel) { sel.innerHTML = '<option value="">-- No Category --</option>' + d.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
+  const sel2 = document.getElementById('filter-category');
+  if (sel2) { sel2.innerHTML = '<option value="">All Categories</option>' + d.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
+  if (currentPage !== 'categories') return;
+  if (isAdmin()) document.getElementById('btn-add-cat').style.display = '';
+  const grid = document.getElementById('categories-grid');
+  if (!d.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏷️</div><div class="empty-text">No categories yet</div></div>'; return; }
+  grid.innerHTML = d.map(c => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="font-family:var(--font-head);font-weight:700;font-size:15px;">${c.name}</div>
+        ${isAdmin() ? `<div class="action-btns"><button class="btn xs outline" onclick="openCatModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">Edit</button><button class="btn xs danger" onclick="deleteCat(${c.id})">Del</button></div>` : ''}
+      </div>
+      <div style="color:var(--text3);font-size:12px;">${c.description || 'No description'}</div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text3);font-family:var(--font-mono);">${fmtDate(c.created_at)}</div>
+    </div>`).join('');
+}
+
+function openCatModal(cat = null) {
+  document.getElementById('cat-modal-title').textContent = cat ? 'Edit Category' : 'Add Category';
+  document.getElementById('cat-id').value = cat?.id || '';
+  document.getElementById('cat-name').value = cat?.name || '';
+  document.getElementById('cat-desc').value = cat?.description || '';
+  openModal('cat-modal');
+}
+
+async function saveCat() {
+  const id = document.getElementById('cat-id').value;
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) return toast('Category name is required.', 'error');
+  const body = {name, description: document.getElementById('cat-desc').value};
+  const res = await apiFetch(id ? `/finance/categories/${id}/` : '/finance/categories/', {method: id ? 'PUT' : 'POST', body: JSON.stringify(body)});
+  if (res?.ok) { closeModal('cat-modal'); toast(id ? 'Category updated!' : 'Category created!', 'success'); loadCategories(); }
+  else { const e = await res?.json(); toast(JSON.stringify(e), 'error'); }
+}
+
+async function deleteCat(id) {
+  if (!confirm('Delete this category?')) return;
+  const res = await apiFetch(`/finance/categories/${id}/`, {method:'DELETE'});
+  if (res?.ok || res?.status === 204) { toast('Category deleted.', 'success'); loadCategories(); }
+  else toast('Delete failed.', 'error');
+}
+
+// ── USERS ──────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const res = await apiFetch('/auth/users/');
+  if (!res?.ok) return;
+  const d = await res.json();
+  const users = d.results || d;
+  document.getElementById('users-tbody').innerHTML = users.map(u => `
+    <tr>
+      <td class="td-primary">${u.full_name}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${u.email}</td>
+      <td><span class="badge ${u.role}">${u.role}</span></td>
+      <td><span class="badge ${u.is_active?'active':'inactive'}">${u.is_active?'Active':'Inactive'}</span></td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${fmtDate(u.date_joined)}</td>
+      <td><div class="action-btns">
+        <button class="btn xs outline" onclick='openUserEditModal(${JSON.stringify(u)})'>Edit</button>
+        ${u.id !== currentUser?.id ? `<button class="btn xs danger" onclick="deactivateUser(${u.id},'${u.full_name}')">Deactivate</button>` : '<span style="color:var(--text3);font-size:12px">You</span>'}
+      </div></td>
+    </tr>`).join('');
+}
+
+function openUserModal() {
+  document.getElementById('user-modal-title').textContent = 'Add User';
+  document.getElementById('user-id').value = '';
+  document.getElementById('user-create-fields').style.display = '';
+  document.getElementById('u-status-field').style.display = 'none';
+  ['u-name','u-email','u-pass','u-pass2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('u-role').value = 'viewer';
+  hideErr('user-modal-error');
+  openModal('user-modal');
+}
+
+function openUserEditModal(u) {
+  document.getElementById('user-modal-title').textContent = 'Edit User';
+  document.getElementById('user-id').value = u.id;
+  document.getElementById('user-create-fields').style.display = 'none';
+  document.getElementById('u-status-field').style.display = '';
+  document.getElementById('u-role').value = u.role;
+  document.getElementById('u-status').value = String(u.is_active);
+  hideErr('user-modal-error');
+  openModal('user-modal');
+}
+
+async function saveUser() {
+  const id = document.getElementById('user-id').value;
+  if (id) {
+    const body = { role: document.getElementById('u-role').value, is_active: document.getElementById('u-status').value === 'true' };
+    const res = await apiFetch(`/auth/users/${id}/`, {method:'PATCH', body: JSON.stringify(body)});
+    if (res?.ok) { closeModal('user-modal'); toast('User updated!', 'success'); loadUsers(); }
+    else { const e = await res?.json(); showErr('user-modal-error', JSON.stringify(e)); }
+  } else {
+    const body = {
+      full_name: document.getElementById('u-name').value.trim(),
+      email: document.getElementById('u-email').value.trim(),
+      password: document.getElementById('u-pass').value,
+      confirm_password: document.getElementById('u-pass2').value,
+      role: document.getElementById('u-role').value
+    };
+    if (!body.full_name || !body.email || !body.password) return showErr('user-modal-error', 'Fill all required fields.');
+    const res = await apiFetch('/auth/users/', {method:'POST', body: JSON.stringify(body)});
+    const data = await res?.json();
+    if (res?.ok) { closeModal('user-modal'); toast('User created!', 'success'); loadUsers(); }
+    else showErr('user-modal-error', JSON.stringify(data));
+  }
+}
+
+async function deactivateUser(id, name) {
+  if (!confirm(`Deactivate user "${name}"?`)) return;
+  const res = await apiFetch(`/auth/users/${id}/`, {method:'DELETE'});
+  if (res?.ok) { toast(`${name} deactivated.`, 'success'); loadUsers(); }
+  else toast('Action failed.', 'error');
+}
+
+// ── PROFILE ────────────────────────────────────────────────────────────────
+async function loadProfile() {
+  const res = await apiFetch('/auth/profile/');
+  if (!res?.ok) return;
+  const u = await res.json();
+  currentUser = u;
+  document.getElementById('profile-avatar-big').textContent = u.full_name[0].toUpperCase();
+  document.getElementById('profile-name').textContent = u.full_name;
+  document.getElementById('profile-email').textContent = u.email;
+  document.getElementById('profile-role').textContent = u.role;
+  document.getElementById('profile-status').textContent = u.is_active ? 'Active' : 'Inactive';
+  document.getElementById('profile-joined').textContent = fmtDate(u.date_joined);
+  document.getElementById('upd-name').value = u.full_name;
+}
+
+async function updateProfile() {
+  const full_name = document.getElementById('upd-name').value.trim();
+  if (!full_name) return toast('Name cannot be empty.', 'error');
+  const res = await apiFetch('/auth/profile/', {method:'PUT', body: JSON.stringify({full_name})});
+  if (res?.ok) { toast('Profile updated!', 'success'); loadProfile(); }
+  else toast('Update failed.', 'error');
+}
+
+async function changePassword() {
+  const old_password = document.getElementById('pwd-old').value;
+  const new_password = document.getElementById('pwd-new').value;
+  const confirm_new_password = document.getElementById('pwd-new2').value;
+  if (!old_password || !new_password) return toast('Fill all password fields.', 'error');
+  if (new_password !== confirm_new_password) return toast('New passwords do not match.', 'error');
+  const res = await apiFetch('/auth/change-password/', {method:'POST', body: JSON.stringify({old_password, new_password, confirm_new_password})});
+  if (res?.ok) { toast('Password changed!', 'success'); ['pwd-old','pwd-new','pwd-new2'].forEach(id => document.getElementById(id).value = ''); }
+  else { const e = await res?.json(); toast(JSON.stringify(e), 'error'); }
+}
+
+// ── AUTO LOGIN if token exists ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if (accessToken && currentUser) { bootApp(); }
+  else if (accessToken) { await fetchAndStoreUser(); if(currentUser) bootApp(); }
+});
+</script>
+</body>
+</html>
