@@ -19,7 +19,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("login/", views.home, name="home"),
+    path("", views.home, name="home"),
     # Auth endpoints
     path("api/auth/", include("core.urls")),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
